@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script>
+
+        async function fetchTransactions() {
+            const token = localStorage.getItem("adminToken");
+            if (!token) {
+                alert("Unauthorized! Please log in.");
+                window.location.href = "admin-login.html";
+                return;
+            }
+
+            try {
+                const response = await fetch("http://localhost:5000/api/admin/transactions", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                })
+
+                const transactions = await response.json();
+                const container = document.getElementById("transactions");
+
+                if (!transactions.transactions || transactions.transactions.length === 0) {
+                    container.innerHTML = "<p>No transactions available.</p>";
+                    return;
+                }
+
+                transactions.transactions.forEach(txn => {
+                    const txnElement = document.createElement("div");
+                    txnElement.innerHTML = `
+                        <p>User: ${txn.userId.username} (${txn.userId.email})</p>
+                        <p>Amount: ${txn.amount} ${txn.currency}</p>
+                        <p>Method: ${txn.paymentMethod}</p>
+                        <p>Status: <b>${txn.status}</b></p>
+                        ${txn.status === "pending" ? `<button onclick="verifyTransaction('${txn._id}')">Verify</button>` : ""}
+                        <hr>
+                    `;
+                    container.appendChild(txnElement);
+                });
+
+            } catch (error) {
+                console.error("Error loading transactions:", error);
+            }
+        }
+
+        // async function verifyTransaction(id) {
+        //     const token = localStorage.getItem("adminToken");
+
+        //     try {
+        //         const response = await fetch(`http://localhost:5000/api/admin/transactions/verify/${id}`, {
+        //             method: "PUT",
+        //             headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
+        //         });
+
+        //         const data = await response.json();
+        //         alert(data.msg);
+        //         location.reload(); // Refresh transactions
+        //     } catch (error) {
+        //         alert("Error verifying transaction");
+        //     }
+        // }
+
+
+        async function verifyTransaction(transactionId) {
+                const token = localStorage.getItem("adminToken");
+                if (!token) {
+                    alert("Admin authentication required.");
+                    return;
+                }
+
+                if (!confirm("Are you sure you want to verify this transaction?")) return;
+
+                try {
+                    const response = await fetch(`http://localhost:5000/api/admin/verify-transaction/${transactionId}`, {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert("Transaction verified successfully!");
+                        fetchTransactions(); // Refresh the list
+                    } else {
+                        alert("Error verifying transaction: " + result.msg);
+                    }
+                } catch (error) {
+                    console.error("Verification error:", error);
+                }
+            }
+
+            fetchTransactions(); // Load transactions on page load
+
+
+
+
+
+
+        function logout() {
+            localStorage.removeItem("adminToken");
+            alert("Logged out successfully!");
+            window.location.href = "admin-login.html";
+        }
+    </script>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <button onclick="logout()">Logout</button>
+    <h2>Pending Transactions</h2>
+    <div id="transactions">Loading...</div>
+</body>
+</html>
