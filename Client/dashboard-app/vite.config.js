@@ -5,7 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     historyApiFallback: true,
-  }
+  },
+  base: process.env.VITE_BASE_PATH || '/Airdrop-Checker',
   // build: {
   //   outDir: 'dist', // Explicitly set for Vercel
   //   emptyOutDir: true, // Clears dist folder on each build
