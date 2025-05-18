@@ -6,6 +6,7 @@ import App from './App.jsx'
 import UserDashboardLayout from './User/components/Header'
 import Login from './User/components/Login.jsx'
 import Register from './User/components/Register.jsx'
+import ErrorPage from './User/components/ErrorPage.jsx'
 
 // 1. Create the router configuration
 const router = createBrowserRouter([
