@@ -24,11 +24,13 @@ const Login = () => {
 
       if (res.ok) {
         localStorage.setItem("token", data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem("subscribed", data.isSubscribed);
         toast.success("Login successful!");
         // Redirect to dashboard or home page
         setTimeout(() => {
-            navigate("/dashboard");
+            // navigate("/dashboard");
+            navigate('/dashboard', { state: { userName: data.user.username } });
         }, 2000);
       } else {
         toast.error(data.msg || "Login failed");

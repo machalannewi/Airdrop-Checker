@@ -118,6 +118,13 @@ const Register = () => {
           />
         </div>
 
+        <p className="text-sm text-gray-400 mb-4">
+          Already have an account ?{" "}
+          <a href="login" className="text-[#E07A5F] hover:underline">
+            Login
+          </a>
+        </p>
+
         <button
           type="submit"
           disabled={loading}
