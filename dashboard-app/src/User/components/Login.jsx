@@ -67,6 +67,21 @@ const Login = () => {
             required
           />
         </label>
+        <div className="flex items-center justify-between mb-4">
+          <label className="flex items-center">
+            <input type="checkbox" className="mr-2" />
+            Remember me
+          </label>
+          <a href="#" className="text-sm text-[#E07A5F] hover:underline">
+            Forgot password?
+          </a>
+        </div>
+        <p className="text-sm text-gray-400 mb-4">
+          Don't have an account?{" "}
+          <a href="register" className="text-[#E07A5F] hover:underline">
+            Register
+          </a>
+        </p>
 
         <button
           type="submit"
