@@ -12,6 +12,7 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <App />, // Your main app component
+    errorElement: <ErrorPage />,
     children: [
         { index: true, element: <Login /> },
         { path: 'dashboard', element: <UserDashboardLayout /> },
@@ -19,7 +20,10 @@ const router = createBrowserRouter([
         { path: 'register', element: <Register /> },
     ],
   }
-])
+], {
+  basename: "/" // Explicitly set base path
+});
+
 
 // 2. Render with RouterProvider
 createRoot(document.getElementById('root')).render(
