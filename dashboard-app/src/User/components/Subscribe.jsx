@@ -14,7 +14,7 @@ export default function Subscribe() {
 
   const handleCryptoSelect = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/wallets/wallet-addresses");
+      const res = await fetch("https://server-4vul.onrender.com/api/wallets/wallet-addresses");
       const data = await res.json();
       setWallets(data);
       setShowPaymentModal(false);
@@ -31,7 +31,7 @@ export default function Subscribe() {
     console.log("Token sent to Paystack route:", token); 
 
     try {
-      const res = await fetch("http://localhost:5000/api/paystack/pay", {
+      const res = await fetch("https://server-4vul.onrender.com/api/paystack/pay", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

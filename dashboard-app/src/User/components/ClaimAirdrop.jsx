@@ -34,7 +34,7 @@ const ClaimAirdrop = () => {
 
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:5000/api/users/status", {
+      const res = await fetch("https://server-4vul.onrender.com/api/users/status", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -57,7 +57,7 @@ const ClaimAirdrop = () => {
 
   const fetchAirdrops = async (token) => {
     try {
-      const res = await fetch("http://localhost:5000/api/airdrops", {
+      const res = await fetch("https://server-4vul.onrender.com/api/airdrops", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

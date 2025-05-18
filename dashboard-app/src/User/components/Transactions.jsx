@@ -10,7 +10,7 @@ const TransactionList = () => {
       const token = localStorage.getItem('token');
 
       try {
-        const res = await fetch('http://localhost:5000/api/deposits/user', {
+        const res = await fetch('https://server-4vul.onrender.com/api/deposits/user', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
