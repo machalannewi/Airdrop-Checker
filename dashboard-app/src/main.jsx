@@ -13,10 +13,10 @@ const router = createBrowserRouter([
     path: '/',
     element: <App />, // Your main app component
     children: [
-        { index: true, element: <Register /> },
+        { index: true, element: <Login /> },
         { path: 'dashboard', element: <UserDashboardLayout /> },
         { path: 'login', element: <Login /> },
-        // { path: 'register', element: <Register /> },
+        { path: 'register', element: <Register /> },
     ],
   }
 ])
