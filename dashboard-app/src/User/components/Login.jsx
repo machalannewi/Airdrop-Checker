@@ -30,7 +30,7 @@ const Login = () => {
         // Redirect to dashboard or home page
         setTimeout(() => {
             // navigate("/dashboard");
-            navigate('/dashboard', { state: { userName: data.user.username } });
+            navigate('/dashboard', { state: { userName: data.user.username, isSubscribed: data.isSubscribed } });
         }, 2000);
       } else {
         toast.error(data.msg || "Login failed");

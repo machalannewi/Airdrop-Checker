@@ -1,10 +1,17 @@
    
    import { Copy } from "lucide-react";
    import { useState } from "react";
+   import { useLocation } from 'react-router-dom';
    
    
    
    function Dashboard() {
+    const location = useLocation();
+    const userSubscribed = location.state?.isSubscribed
+    
+     // Fallback to localStorage if state is lost
+    const subscriptionStatus = userSubscribed ?? localStorage.getItem("subscribed") === true;
+
 
     const [copied, setCopied] = useState(false);
     const referralLink = "https://swapex.com/ref?user=12345";
@@ -34,7 +41,7 @@
             <div className="bg-gray-800 p-5 rounded-2xl shadow-md hover:shadow-lg transition">
                 <h3 className="text-sm text-gray-400">Subscription</h3>
                 <p className="text-lg font-semibold text-blue-400 mt-2">Pro Plan</p>
-                <p className="text-xs text-gray-500 mt-1">Active</p>
+                <p className="text-xs text-gray-500 mt-1">{subscriptionStatus ? "Active" : "Inactive"}</p>
             </div>
 
             <div className="bg-gray-800 p-5 rounded-2xl shadow-md hover:shadow-lg transition">
