@@ -1,22 +1,23 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Logout() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
-    // Clear all relevant data
-    localStorage.removeItem("token");
-    localStorage.removeItem("subscribed"); // if you use this
-
+    logout();
     toast.success("Logged out successfully!");
+    const timer = setTimeout(() => navigate("/"), 1200);
+    return () => clearTimeout(timer);
+  }, [navigate, logout]);
 
-    // Redirect to login
-    setTimeout(() => {
-      navigate("/");
-    }, 2000);
-  }, [navigate]);
-
-  return null; // or a spinner/loading screen if you want
+  return (
+    <div className="flex flex-1 items-center justify-center py-20 text-muted">
+      <Loader2 className="h-5 w-5 animate-spin" />
+    </div>
+  );
 }

@@ -1,12 +1,48 @@
-# React + Vite
+# Airdox
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Vite single-page app for Airdox: a public marketing site (landing page, pricing,
+FAQ) plus an authenticated user dashboard for tracking and claiming crypto airdrops.
 
-Currently, two official plugins are available:
+The marketing site was previously hosted separately on Framer and linked out to this
+dashboard. It's now been rebuilt natively in this app (`src/Public`) so the whole product —
+landing page and dashboard — is one codebase, one design system, and one deploy.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Stack
 
-## Expanding the ESLint configuration
+- React 19 + React Router 7
+- Tailwind CSS (custom "Airdox" theme — black/navy background, indigo-blue brand color,
+  Poppins font — see `tailwind.config.js`)
+- Framer Motion for scroll/entry animations
+- lucide-react for icons
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Structure
+
+```
+src/
+  Public/            marketing site (landing page + sections)
+  User/
+    components/       dashboard shell, auth pages, feature tabs
+    context/           AuthContext — session state (token/user/subscribed)
+  config.js           API base URL
+```
+
+## Getting started
+
+```bash
+npm install
+cp .env.example .env   # set VITE_API_BASE_URL if not using the default API
+npm run dev
+```
+
+## Scripts
+
+- `npm run dev` — start the dev server
+- `npm run build` — production build
+- `npm run lint` — run ESLint
+- `npm run preview` — preview the production build locally
+
+## Auth
+
+Session state (JWT, user profile, subscription flag) is centralized in
+`src/User/context/AuthContext.jsx` and persisted to `localStorage`. The `/dashboard` route is
+guarded by `ProtectedRoute`, which redirects unauthenticated visitors to `/login`.

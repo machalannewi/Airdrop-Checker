@@ -1,34 +1,41 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-import './index.css'
-import App from './App.jsx'
-import UserDashboardLayout from './User/components/Header'
-import Login from './User/components/Login.jsx'
-import Register from './User/components/Register.jsx'
-import ErrorPage from './User/components/ErrorPage.jsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import "./index.css";
+import App from "./App.jsx";
+import Landing from "./Public/Landing.jsx";
+import UserDashboardLayout from "./User/components/Header.jsx";
+import Login from "./User/components/Login.jsx";
+import Register from "./User/components/Register.jsx";
+import ErrorPage from "./User/components/ErrorPage.jsx";
+import ProtectedRoute from "./User/components/ProtectedRoute.jsx";
 
-// 1. Create the router configuration
-const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <App />, // Your main app component
-    errorElement: <ErrorPage />,
-    children: [
-        { index: true, element: <Login /> },
-        { path: 'dashboard', element: <UserDashboardLayout /> },
-        { path: 'login', element: <Login /> },
-        { path: 'register', element: <Register /> },
-    ],
-  }
-], {
-  basename: "/" // Explicitly set base path
-});
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <App />,
+      errorElement: <ErrorPage />,
+      children: [
+        { index: true, element: <Landing /> },
+        { path: "login", element: <Login /> },
+        { path: "register", element: <Register /> },
+        {
+          path: "dashboard",
+          element: (
+            <ProtectedRoute>
+              <UserDashboardLayout />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
+  ],
+  { basename: "/" }
+);
 
-
-// 2. Render with RouterProvider
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById("root")).render(
   <StrictMode>
     <RouterProvider router={router} />
   </StrictMode>
-)
+);

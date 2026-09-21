@@ -1,63 +1,18 @@
-
-
-// function ClaimAirdrop() {
-//   return (
-//     <div className="claim-airdrop">
-//       <h2>Claim Airdrop</h2>
-//       <p>Congratulations! You are eligible for an airdrop.</p>
-//       <button className="claim-button">Claim Now</button>
-//     </div>
-//   );
-// }
-// export default ClaimAirdrop;
-
-
-
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { Loader2, Gift, Lock } from "lucide-react";
+import { apiUrl } from "../../config.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const ClaimAirdrop = () => {
+  const { token, subscribed, setSubscription } = useAuth();
   const [airdrops, setAirdrops] = useState([]);
   const [countdowns, setCountdowns] = useState({});
   const [loading, setLoading] = useState(false);
-  const [subscribed, setSubscribed] = useState(null);
-  const navigate = useNavigate();
+  const [loaded, setLoaded] = useState(false);
 
-  const handleViewAirdrops = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      alert("You need to login first.");
-      navigate("/login");
-      return;
-    }
-
+  const fetchAirdrops = useCallback(async () => {
     try {
-      setLoading(true);
-      const res = await fetch("https://server-4vul.onrender.com/api/users/status", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-
-      if (!data.subscribed) {
-        setSubscribed(false);
-        return;
-      }
-
-      setSubscribed(true);
-      localStorage.setItem("subscribed", "true");
-      fetchAirdrops(token);
-    } catch (error) {
-      console.error("Error checking subscription:", error);
-      setSubscribed(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAirdrops = async (token) => {
-    try {
-      const res = await fetch("https://server-4vul.onrender.com/api/airdrops", {
+      const res = await fetch(apiUrl("/api/airdrops"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -75,7 +30,7 @@ const ClaimAirdrop = () => {
           const secondsLeft = Math.max(
             Math.floor((new Date(drop.expiry).getTime() - Date.now()) / 1000),
             0
-          );          
+          );
           initialCountdowns[index] = secondsLeft;
         } else {
           initialCountdowns[index] = parseInt(drop.timerSeconds) || 0;
@@ -87,7 +42,33 @@ const ClaimAirdrop = () => {
       console.error("Error fetching airdrops:", error);
       setAirdrops([]);
     }
-  };
+  }, [token]);
+
+  const handleViewAirdrops = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      setLoading(true);
+      const res = await fetch(apiUrl("/api/users/status"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      setSubscription(Boolean(data.subscribed));
+      if (data.subscribed) await fetchAirdrops();
+    } catch (error) {
+      console.error("Error checking subscription:", error);
+      setSubscription(false);
+    } finally {
+      setLoading(false);
+      setLoaded(true);
+    }
+  }, [token, fetchAirdrops, setSubscription]);
+
+  useEffect(() => {
+    handleViewAirdrops();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (airdrops.length === 0) return;
@@ -96,9 +77,7 @@ const ClaimAirdrop = () => {
       setCountdowns((prev) => {
         const updated = { ...prev };
         Object.keys(updated).forEach((key) => {
-          if (updated[key] > 0) {
-            updated[key]--;
-          }
+          if (updated[key] > 0) updated[key]--;
         });
         return updated;
       });
@@ -114,70 +93,75 @@ const ClaimAirdrop = () => {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    return `${months}mo : ${days}d : ${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
+    return `${months}mo : ${days}d : ${String(hours).padStart(2, "0")}h : ${String(
+      minutes
+    ).padStart(2, "0")}m : ${String(seconds).padStart(2, "0")}s`;
   };
 
   return (
-    <div className="p-4 min-h-screen bg-gray-950 text-white">
-      <button
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        onClick={handleViewAirdrops}
-      >
-        View Airdrop
-      </button>
-
-      <h1 className="text-2xl font-bold my-4">Latest Airdrops</h1>
-
-      {subscribed === false && (
-        <p className="text-red-500">You need to subscribe to access airdrops.</p>
-      )}
-
-      {subscribed && airdrops.length === 0 && (
-        <p>Fetching latest airdrops...</p>
-      )}
-
-      {!loading && subscribed && airdrops.length < 0 && (
-        <p>No airdrops available.</p>
-      )}
-
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {airdrops.map((airdrop, index) => (
-          <div
-            key={index}
-            className="bg-gray-900 p-4 rounded shadow hover:shadow-lg transition duration-300"
-          >
-            <img
-              className="rounded-lg w-full h-40 object-cover"
-              src={airdrop.image}
-              alt={airdrop.imageAlt}
-            />
-
-            <div className="mt-2 font-mono text-sm text-green-400">
-              {countdowns[index] > 0
-                ? formatTime(countdowns[index])
-                : "Expired"}
-            </div>
-
-            <h3 className="font-bold text-xl mt-2">{airdrop.title}</h3>
-            <p className="text-sm text-gray-300">
-              Reward: {airdrop.amount} {airdrop.currency}
-            </p>
-
-            <a
-              href={airdrop.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-[#E07A5F] px-3 py-2 rounded-lg mt-3 block text-center text-white hover:bg-[#d86f56] transition duration-200 ease-in-out"
-            >
-              Claim Airdrop
-            </a>
-          </div>
-        ))}
+    <div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-medium">Latest Airdrops</h2>
+          <p className="mt-1 text-sm text-muted">Live opportunities available to claim right now.</p>
+        </div>
+        <button className="btn-secondary text-sm" onClick={handleViewAirdrops} disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+          Refresh
+        </button>
       </div>
+
+      {loaded && subscribed === false && (
+        <div className="card mt-6 flex flex-col items-center gap-2 p-10 text-center">
+          <Lock className="h-6 w-6 text-brand-light" />
+          <p className="text-white">You need to subscribe to access airdrops.</p>
+          <p className="text-sm text-muted">Head to the Subscribe tab to unlock full access.</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="mt-10 flex items-center justify-center gap-2 text-muted">
+          <Loader2 className="h-4 w-4 animate-spin" /> Fetching latest airdrops…
+        </div>
+      )}
+
+      {!loading && subscribed && loaded && airdrops.length === 0 && (
+        <p className="mt-10 text-center text-muted">No airdrops available right now.</p>
+      )}
+
+      {!loading && airdrops.length > 0 && (
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {airdrops.map((airdrop, index) => (
+            <div key={index} className="card overflow-hidden p-4 transition hover:shadow-glow">
+              <img
+                className="h-40 w-full rounded-xl object-cover"
+                src={airdrop.image}
+                alt={airdrop.imageAlt || airdrop.title}
+              />
+
+              <div className="mt-3 font-mono text-sm text-brand-light">
+                {countdowns[index] > 0 ? formatTime(countdowns[index]) : "Expired"}
+              </div>
+
+              <h3 className="mt-2 text-lg font-medium">{airdrop.title}</h3>
+              <p className="text-sm text-muted">
+                Reward: {airdrop.amount} {airdrop.currency}
+              </p>
+
+              <a
+                href={airdrop.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary mt-4 w-full"
+              >
+                Claim Airdrop
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
 export default ClaimAirdrop;
-

@@ -1,3 +1,50 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-black text-white font-sans antialiased;
+}
+
+::selection {
+  background: rgba(41, 52, 255, 0.35);
+  color: #fff;
+}
+
+/* thin, brand-colored scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #05060d;
+}
+::-webkit-scrollbar-thumb {
+  background: #1b2140;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2934ff;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-glow transition-colors duration-200 hover:bg-[#3d47ff] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-ink-800 px-5 py-2.5 text-sm font-medium text-white ring-1 ring-inset ring-ink-700 transition-colors duration-200 hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .card {
+    @apply rounded-2xl bg-card-gradient ring-1 ring-inset ring-ink-700/60;
+  }
+  .input-field {
+    @apply w-full rounded-lg bg-ink-800 px-3 py-2.5 text-sm text-white placeholder:text-muted/60 ring-1 ring-inset ring-ink-700 outline-none transition focus:ring-2 focus:ring-brand;
+  }
+  .section-eyebrow {
+    @apply inline-block rounded-full bg-brand-soft px-4 py-1 text-xs font-semibold uppercase tracking-wider text-brand-light ring-1 ring-inset ring-brand/30;
+  }
+}

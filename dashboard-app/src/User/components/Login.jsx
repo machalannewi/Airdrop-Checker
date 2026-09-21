@@ -1,98 +1,103 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-
+import { Zap, Loader2 } from "lucide-react";
+import { apiUrl } from "../../config.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
-      const res = await fetch("https://server-4vul.onrender.com/api/auth/login", {
+      const res = await fetch(apiUrl("/api/auth/login"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem("subscribed", data.isSubscribed);
+        login({ token: data.token, user: data.user, isSubscribed: data.isSubscribed });
         toast.success("Login successful!");
-        // Redirect to dashboard or home page
-        setTimeout(() => {
-            // navigate("/dashboard");
-            navigate('/dashboard', { state: { userName: data.user.username, isSubscribed: data.isSubscribed } });
-        }, 2000);
+        navigate("/dashboard");
       } else {
         toast.error(data.msg || "Login failed");
       }
     } catch (error) {
       toast.error("Something went wrong. Try again.");
       console.error("Login error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
-      <form
-        onSubmit={handleLogin}
-        className="bg-gray-800 p-8 rounded-xl w-full max-w-md shadow-lg"
-      >
-        <h2 className="text-2xl font-semibold mb-6">Login</h2>
+    <div className="flex min-h-screen items-center justify-center bg-hero-radial px-4 text-white">
+      <div className="w-full max-w-md">
+        <Link to="/" className="mb-8 flex items-center justify-center gap-2 text-lg font-semibold">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand">
+            <Zap className="h-4 w-4 text-white" />
+          </span>
+          Airdox
+        </Link>
 
-        <label className="block mb-3">
-          Email
-          <input
-            type="email"
-            className="w-full mt-1 p-2 bg-gray-700 rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
+        <form onSubmit={handleLogin} className="card p-8">
+          <h2 className="text-2xl font-medium">Welcome back</h2>
+          <p className="mt-1 text-sm text-muted">Log in to access your airdrop dashboard.</p>
 
-        <label className="block mb-4">
-          Password
-          <input
-            type="password"
-            className="w-full mt-1 p-2 bg-gray-700 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        <div className="flex items-center justify-between mb-4">
-          <label className="flex items-center">
-            <input type="checkbox" className="mr-2" />
-            Remember me
+          <label className="mt-6 block text-sm">
+            Email
+            <input
+              type="email"
+              className="input-field mt-1.5"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </label>
-          <a href="#" className="text-sm text-[#E07A5F] hover:underline">
-            Forgot password?
-          </a>
-        </div>
-        <p className="text-sm text-gray-400 mb-4">
-          Don't have an account?{" "}
-          <a href="register" className="text-[#E07A5F] hover:underline">
-            Register
-          </a>
-        </p>
 
-        <button
-          type="submit"
-          className="w-full bg-[#E07A5F] hover:bg-[#d86f56] py-2 rounded-md mt-4"
-        >
-          Sign In
-        </button>
-      </form>
+          <label className="mt-4 block text-sm">
+            Password
+            <input
+              type="password"
+              className="input-field mt-1.5"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 text-muted">
+              <input type="checkbox" className="accent-brand" />
+              Remember me
+            </label>
+            <a href="#" className="text-brand-light hover:underline">
+              Forgot password?
+            </a>
+          </div>
+
+          <p className="mt-6 text-sm text-muted">
+            Don't have an account?{" "}
+            <Link to="/register" className="text-brand-light hover:underline">
+              Register
+            </Link>
+          </p>
+
+          <button type="submit" disabled={loading} className="btn-primary mt-6 w-full py-2.5">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

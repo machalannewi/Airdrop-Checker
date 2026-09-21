@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Menu, LogOut, User } from "lucide-react";
-import { motion } from "framer-motion";
+import { Menu, LogOut, User, X, Zap, LayoutDashboard, CreditCard, Gift, Receipt } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Dashboard from "./Dashboard.jsx";
@@ -8,160 +8,128 @@ import Subscribe from "./Subscribe.jsx";
 import Payments from "./Payments.jsx";
 import Transactions from "./Transactions.jsx";
 import ClaimAirdrop from "./ClaimAirdrop.jsx";
-import Logout from "./Logout.jsx";
-import { useLocation } from 'react-router-dom';
-
-
-
-
-
+import { useAuth } from "../context/AuthContext.jsx";
 
 const SidebarLinks = [
-  { name: "Dashboard", href: "#" },
-  { name: "Subscribe", href: "#" },
-  { name: "View Airdrop", href: "#" },
-  { name: "Payments", href: "#" },
-  { name: "Transactions", href: "#" },
-  { name: "Logout" },
+  { name: "Dashboard", icon: LayoutDashboard },
+  { name: "Subscribe", icon: CreditCard },
+  { name: "View Airdrop", icon: Gift },
+  { name: "Payments", icon: CreditCard },
+  { name: "Transactions", icon: Receipt },
 ];
-
-
 
 export default function UserDashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeLink, setActiveLink] = useState("Dashboard");
-  const location = useLocation();
-  const userName = location.state?.userName;
-
-  // Fallback to localStorage if state is lost
-  const currentUser = JSON.parse(localStorage.getItem("user"));
-  const storedUser = userName || currentUser?.username
-  
-
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLinkClick = (name) => {
     setActiveLink(name);
-    setSidebarOpen(false); // close on mobile
+    setSidebarOpen(false);
   };
 
-  const navigate = useNavigate();
+  const handleLogout = () => {
+    logout();
+    toast.success("Logged out successfully!");
+    setTimeout(() => navigate("/"), 1200);
+  };
 
-const handleLogout = () => {
-  // Clear authentication data (adjust if needed)
-  localStorage.removeItem("token");
-  localStorage.removeItem("subscribed");
-
-  toast.success("Logged out successfully!");
-
-  // Redirect to login page
-  setTimeout(() => {
-  navigate("/");
-  }, 2000);
-};
-
-  
+  const NavItems = ({ onClick }) => (
+    <nav className="flex flex-col gap-1">
+      {SidebarLinks.map((link) => {
+        const active = activeLink === link.name;
+        return (
+          <button
+            key={link.name}
+            onClick={() => onClick(link.name)}
+            className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition-colors duration-200 ${
+              active
+                ? "bg-brand text-white shadow-glow"
+                : "text-muted hover:bg-ink-800 hover:text-white"
+            }`}
+          >
+            <link.icon className="h-4 w-4" />
+            {link.name}
+          </button>
+        );
+      })}
+    </nav>
+  );
 
   return (
-    <div className="flex h-screen bg-radial-dark text-white">
+    <div className="flex h-screen bg-black text-white">
       {/* Sidebar for desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-radial-dark p-5 shadow-lg">
-        <h1 className="text-2xl font-bold mb-10">SwapEX</h1>
-        <nav className="flex flex-col gap-3">
-          {SidebarLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onClick={() => handleLinkClick(link.name)}
-              className={`rounded-lg px-4 py-2 transition-colors duration-200 ${
-                activeLink === link.name ? "bg-[#E07A5F]" : "hover:bg-[#E07A5F]"
-              }`}
-            >
-              {link.name}
-            </a>
-          ))}
-        </nav>
+      <aside className="hidden w-64 flex-col border-r border-white/5 bg-ink-950 p-5 md:flex">
+        <div className="mb-10 flex items-center gap-2 text-lg font-semibold">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand">
+            <Zap className="h-4 w-4 text-white" />
+          </span>
+          Airdox
+        </div>
+        <NavItems onClick={handleLinkClick} />
       </aside>
 
-      {/* Sidebar for mobile with animation */}
-      {sidebarOpen && (
-        <motion.aside
-          initial={{ x: "-100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "-100%" }}
-          transition={{ duration: 0.3 }}
-          className="fixed md:hidden z-40 top-0 left-0 h-full w-64 bg-radial-dark shadow-lg p-5"
-        >
-          <div className="flex items-center justify-between mb-10">
-            <h1 className="text-2xl font-bold">SwapEX</h1>
-            <button
-              className="text-gray-400 hover:text-white"
-              onClick={() => setSidebarOpen(false)}
+      {/* Sidebar for mobile */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.25 }}
+              className="fixed left-0 top-0 z-40 h-full w-64 border-r border-white/5 bg-ink-950 p-5 md:hidden"
             >
-              ✕
-            </button>
-          </div>
-          <nav className="flex flex-col gap-3">
-            {SidebarLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={() => handleLinkClick(link.name)}
-                className={`rounded-lg px-4 py-2 transition-colors duration-200 ${
-                  activeLink === link.name
-                    ? "bg-[#E07A5F]"
-                    : "hover:bg-[#E07A5F]"
-                }`}
-              >
-                {link.name}
-              </a>
-            ))}
-          </nav>
-        </motion.aside>
-      )}
-
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+              <div className="mb-10 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-lg font-semibold">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand">
+                    <Zap className="h-4 w-4 text-white" />
+                  </span>
+                  Airdox
+                </div>
+                <button className="text-muted hover:text-white" onClick={() => setSidebarOpen(false)}>
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <NavItems onClick={handleLinkClick} />
+            </motion.aside>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-30 bg-black/60 md:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Navbar */}
-        <header className="flex justify-between items-center bg-[#1f1f2e] p-4 shadow-md">
+      <div className="flex flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-white/5 bg-ink-950/60 p-4 backdrop-blur">
           <div className="flex items-center gap-4">
-            <button
-              className="md:hidden text-gray-400 hover:text-white"
-              onClick={() => setSidebarOpen(true)}
-            >
+            <button className="text-muted hover:text-white md:hidden" onClick={() => setSidebarOpen(true)}>
               <Menu />
             </button>
-            <div className="hidden md:flex items-center gap-2">
-              <User className="w-5 h-5" />
-              <span className="text-sm">Hi, {storedUser}</span>
+            <div className="hidden items-center gap-2 text-sm text-muted md:flex">
+              <User className="h-4 w-4" />
+              <span>Hi, {user?.username || user?.fullname || "there"}</span>
             </div>
           </div>
 
-          <button onClick={handleLogout}
-          className="text-sm bg-[#E07A5F] hover:bg-[#E07A5F] px-4 py-2 rounded-md flex items-center gap-2 logout">
-            <LogOut className="w-4 h-4" /> Logout
+          <button onClick={handleLogout} className="btn-secondary text-sm">
+            <LogOut className="h-4 w-4" /> Logout
           </button>
         </header>
-        
 
-          {/* Conditionally Render Pages */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-ink-950 p-6">
           {activeLink === "Dashboard" && <Dashboard />}
           {activeLink === "Subscribe" && <Subscribe />}
           {activeLink === "View Airdrop" && <ClaimAirdrop />}
           {activeLink === "Payments" && <Payments />}
           {activeLink === "Transactions" && <Transactions />}
-          {activeLink === "Logout" && <Logout/>}
-
         </main>
-
       </div>
     </div>
   );

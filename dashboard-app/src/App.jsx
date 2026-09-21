@@ -1,21 +1,15 @@
-// import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-// import UserDashboardLayout from './User/components/Header';
-import { Outlet } from 'react-router-dom'; // Add this import
+import { Outlet } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { AuthProvider } from "./User/context/AuthContext.jsx";
 
 function App() {
-
   return (
-    <>
-
-            {/* Global elements that appear on every page */}
-            <Outlet /> {/* This renders the matched child route */}
-            <ToastContainer position="top-right" autoClose={2000} />
-            
-    </>
-  )
+    <AuthProvider>
+      <Outlet />
+      <ToastContainer position="top-right" autoClose={2000} theme="dark" />
+    </AuthProvider>
+  );
 }
 
-export default App
-
+export default App;
