@@ -10,7 +10,7 @@ router.get("/status", authMiddleware, async (req, res, next) => {
     const user = await User.findById(req.user.userId);
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    res.json({ subscribed: user.isSubscribed });
+    res.json({ subscribed: user.isSubscribed, subscriptionExpiry: user.subscriptionExpiry });
   } catch (err) {
     next(err);
   }

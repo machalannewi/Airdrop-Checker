@@ -1,5 +1,6 @@
-import { Copy, Check, Wallet, Sparkles, Timer, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { Copy, Check, Wallet, Sparkles, Timer, Receipt, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { apiUrl } from "../../config.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 function StatCard({ icon: Icon, label, value, valueClass = "text-white", sub }) {
@@ -16,8 +17,10 @@ function StatCard({ icon: Icon, label, value, valueClass = "text-white", sub }) 
 }
 
 function Dashboard() {
-  const { user, subscribed } = useAuth();
+  const { user, token, subscribed, subscriptionExpiry } = useAuth();
   const [copied, setCopied] = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const referralLink = user?.username
     ? `https://airdox.app/ref?user=${user.username}`
@@ -29,11 +32,34 @@ function Dashboard() {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const transactions = [
-    { id: 1, type: "Deposit", amount: "$150", date: "2025-04-13", status: "Completed" },
-    { id: 2, type: "Airdrop", amount: "$30", date: "2025-04-11", status: "Pending" },
-    { id: 3, type: "Subscription", amount: "$50", date: "2025-04-08", status: "Completed" },
-  ];
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const res = await fetch(apiUrl("/api/deposits/user"), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setTransactions(data.deposits || []);
+      } catch (err) {
+        console.error("Error fetching transactions:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) fetchTransactions();
+    else setLoading(false);
+  }, [token]);
+
+  const verifiedCount = transactions.filter((t) => t.status === "verified").length;
+  const pendingCount = transactions.filter((t) => t.status === "pending").length;
+  const recentTransactions = transactions.slice(0, 5);
+
+  const expiryDate = subscriptionExpiry ? new Date(subscriptionExpiry) : null;
+  const expiryText =
+    expiryDate && !Number.isNaN(expiryDate.getTime())
+      ? expiryDate.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+      : "—";
 
   return (
     <div>
@@ -43,7 +69,7 @@ function Dashboard() {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Wallet} label="Total Deposited" value="$500.00" valueClass="text-brand-light" />
+        <StatCard icon={Wallet} label="Verified Deposits" value={verifiedCount} valueClass="text-brand-light" />
         <StatCard
           icon={Sparkles}
           label="Subscription"
@@ -51,8 +77,13 @@ function Dashboard() {
           sub={subscribed ? "Active" : "Inactive"}
           valueClass={subscribed ? "text-brand-light" : "text-white"}
         />
-        <StatCard icon={TrendingUp} label="Available Airdrops" value="7" />
-        <StatCard icon={Timer} label="Next Expiry" value="Apr 30, 2025" valueClass="text-red-400" />
+        <StatCard icon={Receipt} label="Pending Deposits" value={pendingCount} />
+        <StatCard
+          icon={Timer}
+          label={subscribed ? "Renews On" : "Next Expiry"}
+          value={expiryText}
+          valueClass="text-red-400"
+        />
       </div>
 
       <div className="mt-8 space-y-8">
@@ -69,34 +100,49 @@ function Dashboard() {
 
         <div className="card p-5">
           <h3 className="mb-4 text-lg font-medium">Recent Transactions</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-ink-700 text-left text-muted">
-                  <th className="py-2 font-normal">Type</th>
-                  <th className="py-2 font-normal">Amount</th>
-                  <th className="py-2 font-normal">Date</th>
-                  <th className="py-2 font-normal">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.id} className="border-b border-ink-800 hover:bg-ink-800/60">
-                    <td className="py-2.5">{tx.type}</td>
-                    <td className="py-2.5">{tx.amount}</td>
-                    <td className="py-2.5">{tx.date}</td>
-                    <td
-                      className={`py-2.5 ${
-                        tx.status === "Completed" ? "text-emerald-400" : "text-amber-400"
-                      }`}
-                    >
-                      {tx.status}
-                    </td>
+
+          {loading && (
+            <div className="flex items-center justify-center gap-2 py-8 text-muted">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+            </div>
+          )}
+
+          {!loading && recentTransactions.length === 0 && (
+            <p className="py-8 text-center text-muted">No transactions yet.</p>
+          )}
+
+          {!loading && recentTransactions.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-ink-700 text-left text-muted">
+                    <th className="py-2 font-normal">Method</th>
+                    <th className="py-2 font-normal">Amount</th>
+                    <th className="py-2 font-normal">Date</th>
+                    <th className="py-2 font-normal">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recentTransactions.map((tx) => (
+                    <tr key={tx._id} className="border-b border-ink-800 hover:bg-ink-800/60">
+                      <td className="py-2">{tx.paymentMethod}</td>
+                      <td className="py-2">
+                        {tx.amount} {tx.currency || ""}
+                      </td>
+                      <td className="py-2">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                      <td
+                        className={`py-2 ${
+                          tx.status === "verified" ? "text-emerald-400" : "text-amber-400"
+                        }`}
+                      >
+                        {tx.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

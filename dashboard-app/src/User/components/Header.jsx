@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, LogOut, User, X, Zap, LayoutDashboard, CreditCard, Gift, Receipt } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Dashboard from "./Dashboard.jsx";
 import Subscribe from "./Subscribe.jsx";
@@ -21,8 +21,37 @@ const SidebarLinks = [
 export default function UserDashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeLink, setActiveLink] = useState("Dashboard");
-  const { user, logout } = useAuth();
+  const { user, logout, refreshSubscription } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Always get a fresh subscription status on load, instead of trusting
+  // whatever was last cached locally.
+  useEffect(() => {
+    refreshSubscription();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Paystack redirects back to /dashboard?success=true|false, not to any
+  // specific tab, so this has to be handled at the shell level — a
+  // useEffect inside the Subscribe component alone would never run unless
+  // the user happened to already be on that tab.
+  useEffect(() => {
+    const success = searchParams.get("success");
+    if (!success) return;
+
+    if (success === "true") {
+      toast.success("Payment successful! Your subscription is now active.");
+      refreshSubscription();
+    } else {
+      const reason = searchParams.get("reason");
+      toast.error(reason === "payment_failed" ? "Payment failed. Please try again." : "Something went wrong with your payment.");
+    }
+
+    setActiveLink("Subscribe");
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleLinkClick = (name) => {
     setActiveLink(name);

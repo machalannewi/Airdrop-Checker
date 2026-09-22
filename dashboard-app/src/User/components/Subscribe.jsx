@@ -1,20 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import toast from "react-hot-toast";
-import { X, Wallet, CreditCard, ArrowLeft, Copy, Loader2 } from "lucide-react";
+import { X, Wallet, CreditCard, ArrowLeft, Copy, Loader2, Check } from "lucide-react";
 import { apiUrl } from "../../config.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import SubscriptionStatus from "./SubscriptionStatus.jsx";
 
 export default function Subscribe() {
-  const { token, setSubscription } = useAuth();
+  const { token, subscribed } = useAuth();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCryptoModal, setShowCryptoModal] = useState(false);
   const [wallets, setWallets] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  const [selectedCurrency, setSelectedCurrency] = useState(null);
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositTxHash, setDepositTxHash] = useState("");
+  const [submittingDeposit, setSubmittingDeposit] = useState(false);
+
   const openPaymentModal = () => setShowPaymentModal(true);
   const closeModals = () => {
     setShowPaymentModal(false);
     setShowCryptoModal(false);
+    setSelectedCurrency(null);
+    setDepositAmount("");
+    setDepositTxHash("");
   };
 
   const handleCryptoSelect = async () => {
@@ -23,6 +32,7 @@ export default function Subscribe() {
       const res = await fetch(apiUrl("/api/wallets/wallet-addresses"));
       const data = await res.json();
       setWallets(data);
+      setSelectedCurrency(Object.keys(data)[0] || null);
       setShowPaymentModal(false);
       setShowCryptoModal(true);
     } catch (error) {
@@ -66,15 +76,41 @@ export default function Subscribe() {
     });
   };
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("success") === "true") {
-      toast.success("Subscription successful!");
-      setSubscription(true);
-    } else if (params.get("success") === "false") {
-      toast.error("Payment failed. Try again.");
+  const handleSubmitDeposit = async (e) => {
+    e.preventDefault();
+    if (!selectedCurrency || !wallets) return;
+
+    setSubmittingDeposit(true);
+    try {
+      const res = await fetch(apiUrl("/api/deposits/submit"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: Number(depositAmount),
+          currency: selectedCurrency.toUpperCase(),
+          walletAddress: wallets[selectedCurrency],
+          transactionHash: depositTxHash.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.errors?.[0]?.msg || data.msg || "Couldn't submit deposit");
+        return;
+      }
+
+      toast.success("Deposit submitted. It'll appear as pending until an admin approves it.");
+      closeModals();
+    } catch (error) {
+      console.error("Deposit submit error:", error);
+      toast.error("Something went wrong. Try again.");
+    } finally {
+      setSubmittingDeposit(false);
     }
-  }, [setSubscription]);
+  };
 
   return (
     <div>
@@ -83,8 +119,12 @@ export default function Subscribe() {
         Unlock the full Pro plan — automated claim reminders, priority support and more.
       </p>
 
+      <div className="mt-6">
+        <SubscriptionStatus />
+      </div>
+
       <button onClick={openPaymentModal} className="btn-primary mt-6">
-        Subscribe Now
+        {subscribed ? "Extend Subscription" : "Subscribe Now"}
       </button>
 
       {showPaymentModal && (
@@ -129,8 +169,8 @@ export default function Subscribe() {
       )}
 
       {showCryptoModal && wallets && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="card w-full max-w-md p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8">
+          <div className="card w-full max-w-md max-h-full overflow-y-auto p-6">
             <div className="mb-4 flex items-center justify-between">
               <button
                 onClick={() => {
@@ -145,33 +185,79 @@ export default function Subscribe() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <h3 className="mb-3 font-medium">Select a wallet to deposit to:</h3>
-            <ul className="space-y-3">
-              {Object.entries(wallets).map(([coin, address]) => (
-                <li
+
+            <h3 className="mb-3 font-medium">1. Choose a currency and send payment</h3>
+            <div className="flex gap-2">
+              {Object.keys(wallets).map((coin) => (
+                <button
                   key={coin}
-                  className="flex items-center justify-between gap-3 border-b border-ink-700 pb-2 text-sm"
+                  onClick={() => setSelectedCurrency(coin)}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    selectedCurrency === coin
+                      ? "bg-brand text-white"
+                      : "bg-ink-800 text-muted hover:text-white"
+                  }`}
                 >
-                  <span className="truncate">
-                    <strong>{coin.toUpperCase()}:</strong> {address}
-                  </span>
-                  <button
-                    className="flex flex-shrink-0 items-center gap-1 rounded-md bg-brand px-2 py-1 text-xs"
-                    onClick={() => copyToClipboard(address)}
-                  >
-                    <Copy className="h-3 w-3" /> Copy
-                  </button>
-                </li>
+                  {coin.toUpperCase()}
+                </button>
               ))}
-            </ul>
+            </div>
+
+            {selectedCurrency && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border-b border-ink-700 bg-ink-800 p-3 text-sm">
+                <span className="truncate">{wallets[selectedCurrency]}</span>
+                <button
+                  className="flex flex-shrink-0 items-center gap-1 rounded-md bg-brand px-2 py-1 text-xs"
+                  onClick={() => copyToClipboard(wallets[selectedCurrency])}
+                >
+                  <Copy className="h-3 w-3" /> Copy
+                </button>
+              </div>
+            )}
+
             <div className="mt-4 rounded-lg bg-ink-800 p-3 text-sm">
-              <h4 className="font-medium">Payment Instructions</h4>
-              <ol className="ml-5 mt-2 list-decimal space-y-1 text-muted">
-                <li>Send the exact amount to the address shown</li>
-                <li>Payment will be verified automatically</li>
-                <li>This may take a few minutes</li>
+              <ol className="ml-5 list-decimal space-y-1 text-muted">
+                <li>Send the exact amount to the address above</li>
+                <li>Fill in the form below with what you sent</li>
+                <li>An admin will verify and approve it — usually within a few minutes</li>
               </ol>
             </div>
+
+            <h3 className="mb-3 mt-5 font-medium">2. Confirm your payment</h3>
+            <form onSubmit={handleSubmitDeposit} className="space-y-3">
+              <label className="block text-sm">
+                Amount sent ({selectedCurrency?.toUpperCase()})
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  required
+                  className="input-field mt-1.5"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                />
+              </label>
+              <label className="block text-sm">
+                Transaction hash
+                <input
+                  type="text"
+                  required
+                  className="input-field mt-1.5"
+                  value={depositTxHash}
+                  onChange={(e) => setDepositTxHash(e.target.value)}
+                  placeholder="0x..."
+                />
+              </label>
+              <button type="submit" disabled={submittingDeposit} className="btn-primary w-full">
+                {submittingDeposit ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" /> Submit for approval
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       )}

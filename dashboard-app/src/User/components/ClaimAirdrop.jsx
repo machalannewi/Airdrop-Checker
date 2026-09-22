@@ -54,7 +54,7 @@ const ClaimAirdrop = () => {
       });
       const data = await res.json();
 
-      setSubscription(Boolean(data.subscribed));
+      setSubscription(Boolean(data.subscribed), data.subscriptionExpiry);
       if (data.subscribed) await fetchAirdrops();
     } catch (error) {
       console.error("Error checking subscription:", error);

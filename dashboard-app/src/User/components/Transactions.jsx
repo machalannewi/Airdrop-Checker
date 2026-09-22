@@ -56,8 +56,10 @@ const TransactionList = () => {
           {deposits.map((deposit) => (
             <div key={deposit._id} className="card p-4">
               <p className="text-sm text-muted">Amount</p>
-              <p className="text-lg font-semibold">${deposit.amount}</p>
-              <p className="mt-2 text-sm text-muted">Currency</p>
+              <p className="text-lg font-semibold">
+                {deposit.amount} {deposit.currency || ""}
+              </p>
+              <p className="mt-2 text-sm text-muted">Method</p>
               <p className="text-sm">{deposit.paymentMethod}</p>
               <div className="mt-3 flex items-center justify-between">
                 <span

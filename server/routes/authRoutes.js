@@ -71,6 +71,7 @@ router.post(
         msg: "Login successful",
         token,
         isSubscribed: user.isSubscribed,
+        subscriptionExpiry: user.subscriptionExpiry,
         user: {
           _id: user._id,
           fullname: user.fullname,

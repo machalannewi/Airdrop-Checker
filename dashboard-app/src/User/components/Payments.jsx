@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, CreditCard } from "lucide-react";
 import { apiUrl } from "../../config.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import SubscriptionStatus from "./SubscriptionStatus.jsx";
 
 function Payments() {
   const { token } = useAuth();
@@ -34,6 +35,10 @@ function Payments() {
       <h2 className="text-xl font-medium">Payments</h2>
       <p className="mt-1 text-sm text-muted">Your subscription and deposit history.</p>
 
+      <div className="mt-6">
+        <SubscriptionStatus />
+      </div>
+
       <div className="card mt-6 p-5">
         {loading && (
           <div className="flex items-center justify-center gap-2 py-10 text-muted">
@@ -56,6 +61,7 @@ function Payments() {
               <thead>
                 <tr className="border-b border-ink-700 text-left text-muted">
                   <th className="py-2 font-normal">Amount</th>
+                  <th className="py-2 font-normal">Currency</th>
                   <th className="py-2 font-normal">Method</th>
                   <th className="py-2 font-normal">Status</th>
                   <th className="py-2 font-normal">Date</th>
@@ -64,7 +70,8 @@ function Payments() {
               <tbody>
                 {payments.map((p) => (
                   <tr key={p._id} className="border-b border-ink-800 hover:bg-ink-800/60">
-                    <td className="py-2.5">${p.amount}</td>
+                    <td className="py-2.5">{p.amount}</td>
+                    <td className="py-2.5">{p.currency || "—"}</td>
                     <td className="py-2.5">{p.paymentMethod}</td>
                     <td
                       className={`py-2.5 ${

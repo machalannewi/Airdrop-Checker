@@ -26,7 +26,12 @@ const Login = () => {
       const data = await res.json();
 
       if (res.ok) {
-        login({ token: data.token, user: data.user, isSubscribed: data.isSubscribed });
+        login({
+          token: data.token,
+          user: data.user,
+          isSubscribed: data.isSubscribed,
+          subscriptionExpiry: data.subscriptionExpiry,
+        });
         toast.success("Login successful!");
         navigate("/dashboard");
       } else {
