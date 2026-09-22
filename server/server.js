@@ -20,6 +20,7 @@ import walletRoutes from "./routes/walletRoutes.js"; // Import wallet routes
 import withdrawalRoutes from "./routes/withdrawalRoutes.js"; // Import withdrawal routes
 import { authLimiter } from "./middleware/rateLimiter.js";
 import Transaction from "./Models/Transaction.js";
+import { refreshAirdropCache } from "./services/airdropScraper.js";
 
 const requiredEnvVars = ["MONGO_URI", "JWT_SECRET"];
 const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
@@ -143,6 +144,19 @@ cron.schedule("0 0 * * *", async () => {
   } catch (error) {
     console.error("Expiry check error:", error);
   }
+});
+
+// 3. Keep the airdrop cache warm. Scraping is slow (a full headless Chrome
+// launch + several page loads) and was regularly exceeding request timeouts
+// when it ran live on GET /api/airdrops; running it here means that route
+// is always just a fast DB read. Fire-and-forget on boot so the cache isn't
+// empty right after a deploy (or after Render's free tier spins the
+// service down and a new request wakes it back up), then keep it fresh on
+// a schedule for as long as the process stays up.
+const AIRDROP_SCRAPE_INTERVAL_MIN = Number(process.env.AIRDROP_SCRAPE_INTERVAL_MIN) || 20;
+refreshAirdropCache().catch((err) => console.error("Initial airdrop scrape failed:", err.message));
+cron.schedule(`*/${AIRDROP_SCRAPE_INTERVAL_MIN} * * * *`, () => {
+  refreshAirdropCache().catch((err) => console.error("Scheduled airdrop scrape failed:", err.message));
 });
 
 console.log("Cron jobs for subscriptions are active.");

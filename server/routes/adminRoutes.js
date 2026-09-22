@@ -6,7 +6,9 @@ import Admin from "../Models/admin.js";
 import adminAuth, { adminAuthMiddleware } from "../middleware/adminAuth.js"; // Middleware to protect admin routes
 import Transaction from "../Models/Transaction.js";
 import User from "../Models/user.js";
+import Airdrop from "../Models/Airdrop.js";
 import { sendDepositApprovalEmail, sendSubscriptionRenewalEmail } from "./mailer.js";
+import { refreshAirdropCache } from "../services/airdropScraper.js";
 
 const router = express.Router();
 
@@ -138,6 +140,18 @@ router.put("/verify-deposit/:id", adminAuthMiddleware, async (req, res, next) =>
     await deposit.save();
 
     res.json({ msg: `Deposit ${status} successfully` });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Force an immediate re-scrape instead of waiting for the schedule — useful
+// right after a deploy to confirm the scraper actually works on this host.
+router.post("/airdrops/refresh", adminAuthMiddleware, async (req, res, next) => {
+  try {
+    const result = await refreshAirdropCache();
+    const count = await Airdrop.countDocuments();
+    res.json({ ...result, cachedCount: count });
   } catch (error) {
     next(error);
   }

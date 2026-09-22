@@ -65,26 +65,39 @@ keep the change scoped to this review.
 
 ## The airdrop scraper (`GET /api/airdrops`)
 
-This route launches a real headless Chrome via Puppeteer to scrape airdrop.io — there's no
-public API for it. Two things make this fragile on hosted platforms, both addressed in
-`routes/airdropRoutes.js`:
+There's no public API for airdrop.io, so `services/airdropScraper.js` launches a real
+headless Chrome via Puppeteer to scrape it. Scraping is slow — a browser launch plus a page
+load per listed airdrop — slow enough that running it live on the request path regularly
+exceeded hosting platforms' request timeouts (Render's free tier alone can add 50s+ of cold
+start on top). So it doesn't run there anymore:
+
+- A cron job in `server.js` (`AIRDROP_SCRAPE_INTERVAL_MIN`, default 20 minutes) calls
+  `refreshAirdropCache()`, which scrapes and upserts results into the `Airdrop` collection,
+  keyed by link (this also naturally de-dupes — airdrop.io lists some airdrops twice, e.g. in
+  a featured section and the main grid). It also runs once on boot, so the cache isn't empty
+  right after a deploy or after the service wakes from a cold start.
+- `GET /api/airdrops` is just `Airdrop.find()` — a fast DB read, decoupled entirely from how
+  long scraping takes or whether it's currently running.
+- `POST /api/admin/airdrops/refresh` (admin-only) triggers an immediate re-scrape instead of
+  waiting for the schedule — useful right after a deploy to confirm scraping actually works
+  on that host.
+
+Two things make the scrape itself fragile on hosted platforms:
 
 - **Chrome needs a Linux-compatible binary, not just `--no-sandbox`.** Regular Puppeteer's
   bundled Chromium commonly fails to even *launch* on managed/minimal Linux hosts like
   Render — not a sandbox issue, but missing shared libraries (`libnss3` and friends) that
   the image doesn't have and that you can't `apt-get install` there. `launchBrowser()` in
-  `routes/airdropRoutes.js` detects `process.platform === "linux"` and uses
+  `services/airdropScraper.js` detects `process.platform === "linux"` and uses
   `@sparticuz/chromium` (a Chromium build made to run standalone on exactly these hosts)
   instead of Puppeteer's own binary; plain Puppeteer is still used for local dev on
-  Windows/Mac, since `@sparticuz/chromium`'s binary is Linux-only. If this route starts
-  erroring again after a platform/Node upgrade, check the server logs for a launch failure
-  here first.
-- **Bounded, concurrent detail-page scraping.** Each airdrop's expiry date requires visiting
-  its own detail page; doing that fully sequentially for 30+ airdrops could take minutes —
-  long past most reverse proxies' request timeout, which silently looks like "it just
-  doesn't fetch anymore." It's now capped to the first `MAX_DETAIL_PAGES` airdrops, fetched
-  `DETAIL_CONCURRENCY` at a time, each with its own navigation timeout, plus a hard overall
-  timeout on the whole scrape.
-- If Chrome fails to launch even with `--no-sandbox` (e.g., the host is memory-constrained —
-  a full Chromium instance needs on the order of a few hundred MB), the route falls back to
-  the last successful scrape if one is cached, rather than returning nothing.
+  Windows/Mac, since `@sparticuz/chromium`'s binary is Linux-only. If scraping starts failing
+  again after a platform/Node upgrade, check the server logs for a launch failure first.
+- **Bounded, concurrent detail-page scraping**, so one slow/broken detail page can't stall
+  the whole run: capped to `MAX_DETAIL_PAGES` airdrops, fetched `DETAIL_CONCURRENCY` at a
+  time, each with its own navigation timeout, plus a hard overall timeout on the whole
+  scrape. None of this is request-time-critical anymore (it runs in the background), but it
+  still bounds how long a single Chrome instance stays alive.
+- If a scrape returns nothing (Chrome fails to launch, the site is down, etc.),
+  `refreshAirdropCache()` keeps whatever was cached before rather than wiping it — a failed
+  background scrape degrades to stale data, not an empty page.
