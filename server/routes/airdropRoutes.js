@@ -3,6 +3,34 @@ import puppeteer from "puppeteer";
 import authMiddleware from "../middleware/authMiddleware.js";
 import checkSubscription from "../middleware/subscriptionMiddleware.js";
 
+const LAUNCH_ARGS = [
+  "--no-sandbox",
+  "--disable-setuid-sandbox",
+  "--disable-dev-shm-usage",
+  "--disable-gpu",
+];
+
+// Regular Puppeteer bundles its own Chromium, but that build commonly fails
+// to even launch on managed/minimal Linux hosts (Render included) — not
+// because of the sandbox, but because system libraries it links against
+// (libnss3 and friends) simply aren't installed on the image, and there's
+// no way to apt-get them there. @sparticuz/chromium ships a Chromium build
+// made specifically to run standalone on exactly these hosts, so use it
+// whenever we're actually running on Linux; keep plain Puppeteer for local
+// dev on Windows/Mac, where @sparticuz/chromium's Linux-only binary won't run.
+async function launchBrowser() {
+  if (process.platform === "linux") {
+    const { default: chromium } = await import("@sparticuz/chromium");
+    return puppeteer.launch({
+      args: [...chromium.args, ...LAUNCH_ARGS],
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+  }
+
+  return puppeteer.launch({ headless: true, args: LAUNCH_ARGS });
+}
+
 const router = express.Router();
 
 // Scraping a fresh headless browser per request is expensive; cache results
@@ -39,19 +67,7 @@ async function mapWithConcurrency(items, limit, worker) {
 async function scrapeAirdrops() {
   let browser;
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      // Cloud/container hosts (Render, Docker, etc.) generally can't run
-      // Chrome's own sandbox, and without --no-sandbox the launch fails
-      // outright rather than falling back — this is the most common reason
-      // Puppeteer works locally but silently breaks once deployed.
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-    });
+    browser = await launchBrowser();
 
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Loader2, Gift, Lock } from "lucide-react";
+import { toast } from "sonner";
+import { Loader2, Gift, Lock, AlertTriangle } from "lucide-react";
 import { apiUrl } from "../../config.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -9,16 +10,20 @@ const ClaimAirdrop = () => {
   const [countdowns, setCountdowns] = useState({});
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   const fetchAirdrops = useCallback(async () => {
+    setLoadError(null);
+
     try {
       const res = await fetch(apiUrl("/api/airdrops"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
 
-      if (!data || data.length === 0) {
+      if (!res.ok || !Array.isArray(data)) {
         setAirdrops([]);
+        setLoadError(data?.error || "Couldn't fetch the latest airdrops. Try again shortly.");
         return;
       }
 
@@ -41,6 +46,7 @@ const ClaimAirdrop = () => {
     } catch (error) {
       console.error("Error fetching airdrops:", error);
       setAirdrops([]);
+      setLoadError("Couldn't fetch the latest airdrops. Try again shortly.");
     }
   }, [token]);
 
@@ -58,6 +64,7 @@ const ClaimAirdrop = () => {
       if (data.subscribed) await fetchAirdrops();
     } catch (error) {
       console.error("Error checking subscription:", error);
+      toast.error("Couldn't check your subscription status.");
       setSubscription(false);
     } finally {
       setLoading(false);
@@ -125,7 +132,17 @@ const ClaimAirdrop = () => {
         </div>
       )}
 
-      {!loading && subscribed && loaded && airdrops.length === 0 && (
+      {!loading && subscribed && loadError && (
+        <div className="card mt-6 flex flex-col items-center gap-2 p-10 text-center">
+          <AlertTriangle className="h-6 w-6 text-amber-400" />
+          <p className="text-white">{loadError}</p>
+          <button onClick={fetchAirdrops} className="btn-secondary mt-2 text-sm">
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loading && subscribed && loaded && !loadError && airdrops.length === 0 && (
         <p className="mt-10 text-center text-muted">No airdrops available right now.</p>
       )}
 

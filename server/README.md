@@ -69,10 +69,16 @@ This route launches a real headless Chrome via Puppeteer to scrape airdrop.io �
 public API for it. Two things make this fragile on hosted platforms, both addressed in
 `routes/airdropRoutes.js`:
 
-- **Chrome needs `--no-sandbox`** (and friends) to launch inside most containers — without
-  it, `puppeteer.launch()` fails outright on platforms like Render rather than falling back
-  to anything. If this route starts erroring again after a platform/Node upgrade, check the
-  server logs for a launch failure here first.
+- **Chrome needs a Linux-compatible binary, not just `--no-sandbox`.** Regular Puppeteer's
+  bundled Chromium commonly fails to even *launch* on managed/minimal Linux hosts like
+  Render — not a sandbox issue, but missing shared libraries (`libnss3` and friends) that
+  the image doesn't have and that you can't `apt-get install` there. `launchBrowser()` in
+  `routes/airdropRoutes.js` detects `process.platform === "linux"` and uses
+  `@sparticuz/chromium` (a Chromium build made to run standalone on exactly these hosts)
+  instead of Puppeteer's own binary; plain Puppeteer is still used for local dev on
+  Windows/Mac, since `@sparticuz/chromium`'s binary is Linux-only. If this route starts
+  erroring again after a platform/Node upgrade, check the server logs for a launch failure
+  here first.
 - **Bounded, concurrent detail-page scraping.** Each airdrop's expiry date requires visiting
   its own detail page; doing that fully sequentially for 30+ airdrops could take minutes —
   long past most reverse proxies' request timeout, which silently looks like "it just
