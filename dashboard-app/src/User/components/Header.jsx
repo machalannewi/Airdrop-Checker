@@ -1,14 +1,27 @@
 import { useEffect, useState } from "react";
-import { Menu, LogOut, User, X, Zap, LayoutDashboard, CreditCard, Gift, Receipt } from "lucide-react";
+import {
+  Menu,
+  LogOut,
+  User,
+  X,
+  Zap,
+  LayoutDashboard,
+  CreditCard,
+  Gift,
+  Receipt,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import Dashboard from "./Dashboard.jsx";
 import Subscribe from "./Subscribe.jsx";
 import Payments from "./Payments.jsx";
 import Transactions from "./Transactions.jsx";
 import ClaimAirdrop from "./ClaimAirdrop.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { cn } from "../../lib/utils.js";
 
 const SidebarLinks = [
   { name: "Dashboard", icon: LayoutDashboard },
@@ -20,10 +33,17 @@ const SidebarLinks = [
 
 export default function UserDashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem("sidebarCollapsed") === "true"
+  );
   const [activeLink, setActiveLink] = useState("Dashboard");
   const { user, logout, refreshSubscription } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    localStorage.setItem("sidebarCollapsed", String(collapsed));
+  }, [collapsed]);
 
   // Always get a fresh subscription status on load, instead of trusting
   // whatever was last cached locally.
@@ -64,7 +84,7 @@ export default function UserDashboardLayout() {
     setTimeout(() => navigate("/"), 1200);
   };
 
-  const NavItems = ({ onClick }) => (
+  const NavItems = ({ onClick, iconOnly = false }) => (
     <nav className="flex flex-col gap-1">
       {SidebarLinks.map((link) => {
         const active = activeLink === link.name;
@@ -72,14 +92,17 @@ export default function UserDashboardLayout() {
           <button
             key={link.name}
             onClick={() => onClick(link.name)}
-            className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition-colors duration-200 ${
+            title={iconOnly ? link.name : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition-colors duration-200",
+              iconOnly && "justify-center px-0",
               active
                 ? "bg-brand text-white shadow-glow"
                 : "text-muted hover:bg-ink-800 hover:text-white"
-            }`}
+            )}
           >
-            <link.icon className="h-4 w-4" />
-            {link.name}
+            <link.icon className="h-4 w-4 flex-shrink-0" />
+            {!iconOnly && link.name}
           </button>
         );
       })}
@@ -89,14 +112,28 @@ export default function UserDashboardLayout() {
   return (
     <div className="flex h-screen bg-black text-white">
       {/* Sidebar for desktop */}
-      <aside className="hidden w-64 flex-col border-r border-white/5 bg-ink-950 p-5 md:flex">
-        <div className="mb-10 flex items-center gap-2 text-lg font-semibold">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand">
-            <Zap className="h-4 w-4 text-white" />
-          </span>
-          Airdox
+      <aside
+        className={cn(
+          "hidden flex-col border-r border-white/5 bg-ink-950 p-5 transition-[width] duration-200 md:flex",
+          collapsed ? "w-20" : "w-64"
+        )}
+      >
+        <div className={cn("mb-10 flex items-center", collapsed ? "flex-col gap-3" : "justify-between")}>
+          <div className="flex items-center gap-2 text-lg font-semibold">
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand">
+              <Zap className="h-4 w-4 text-white" />
+            </span>
+            {!collapsed && "Airdox"}
+          </div>
+          <button
+            onClick={() => setCollapsed((v) => !v)}
+            className="text-muted hover:text-white"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+          </button>
         </div>
-        <NavItems onClick={handleLinkClick} />
+        <NavItems onClick={handleLinkClick} iconOnly={collapsed} />
       </aside>
 
       {/* Sidebar for mobile */}

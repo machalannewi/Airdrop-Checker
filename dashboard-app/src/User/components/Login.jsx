@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { Zap, Loader2 } from "lucide-react";
 import { apiUrl } from "../../config.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import PasswordInput from "../../components/ui/PasswordInput.jsx";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -63,6 +64,7 @@ const Login = () => {
             Email
             <input
               type="email"
+              autoComplete="email"
               className="input-field mt-1.5"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -72,9 +74,9 @@ const Login = () => {
 
           <label className="mt-4 block text-sm">
             Password
-            <input
-              type="password"
-              className="input-field mt-1.5"
+            <PasswordInput
+              autoComplete="current-password"
+              className="mt-1.5"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -86,9 +88,15 @@ const Login = () => {
               <input type="checkbox" className="accent-brand" />
               Remember me
             </label>
-            <a href="#" className="text-brand-light hover:underline">
+            <button
+              type="button"
+              onClick={() =>
+                toast.info("Password reset isn't available yet — contact support for help.")
+              }
+              className="text-brand-light hover:underline"
+            >
               Forgot password?
-            </a>
+            </button>
           </div>
 
           <p className="mt-6 text-sm text-muted">

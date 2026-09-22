@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X, Zap, LayoutDashboard } from "lucide-react";
+import { useAuth } from "../../User/context/AuthContext.jsx";
 
 const links = [
   { name: "Features", href: "#features" },
@@ -10,6 +11,7 @@ const links = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 bg-black/70 backdrop-blur-md">
@@ -30,12 +32,20 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link to="/login" className="btn-secondary">
-            Login
-          </Link>
-          <Link to="/register" className="btn-primary">
-            Get started
-          </Link>
+          {isAuthenticated ? (
+            <Link to="/dashboard" className="btn-primary">
+              <LayoutDashboard className="h-4 w-4" /> Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link to="/login" className="btn-secondary">
+                Login
+              </Link>
+              <Link to="/register" className="btn-primary">
+                Get started
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -57,12 +67,20 @@ export default function Navbar() {
             ))}
           </nav>
           <div className="mt-4 flex flex-col gap-3">
-            <Link to="/login" className="btn-secondary" onClick={() => setOpen(false)}>
-              Login
-            </Link>
-            <Link to="/register" className="btn-primary" onClick={() => setOpen(false)}>
-              Get started
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/dashboard" className="btn-primary" onClick={() => setOpen(false)}>
+                <LayoutDashboard className="h-4 w-4" /> Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="btn-secondary" onClick={() => setOpen(false)}>
+                  Login
+                </Link>
+                <Link to="/register" className="btn-primary" onClick={() => setOpen(false)}>
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

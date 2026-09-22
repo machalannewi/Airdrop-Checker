@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LayoutDashboard } from "lucide-react";
+import { useAuth } from "../../User/context/AuthContext.jsx";
 
 export default function CTA() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <section className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl px-6 py-20 sm:mx-6 sm:my-20 sm:px-12">
       <div className="absolute inset-0 -z-10 bg-hero-radial" />
@@ -16,12 +19,20 @@ export default function CTA() {
           Unlock your unclaimed airdrops instantly with Airdox.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-          <Link to="/register" className="btn-primary px-6 py-3 text-base">
-            Get Started Now <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link to="/login" className="btn-secondary px-6 py-3 text-base">
-            Login
-          </Link>
+          {isAuthenticated ? (
+            <Link to="/dashboard" className="btn-primary px-6 py-3 text-base">
+              <LayoutDashboard className="h-4 w-4" /> Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link to="/register" className="btn-primary px-6 py-3 text-base">
+                Get Started Now <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link to="/login" className="btn-secondary px-6 py-3 text-base">
+                Login
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </section>

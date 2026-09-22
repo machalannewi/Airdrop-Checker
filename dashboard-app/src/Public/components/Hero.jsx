@@ -1,10 +1,13 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LayoutDashboard } from "lucide-react";
+import { useAuth } from "../../User/context/AuthContext.jsx";
 
 const brands = ["Airdox", "Crystalio", "Voyage", "Chase app", "Robinson jr"];
 
 export default function Hero() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <section className="relative overflow-hidden bg-hero-radial pb-20 pt-24">
       <div className="pointer-events-none absolute left-1/2 top-0 h-[36rem] w-[60rem] -translate-x-1/2 bg-brand-glow opacity-60 blur-3xl" />
@@ -48,12 +51,20 @@ export default function Hero() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="mt-8 flex flex-wrap items-center justify-center gap-4"
         >
-          <Link to="/register" className="btn-primary px-6 py-3 text-base">
-            Get Started Now <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link to="/login" className="btn-secondary px-6 py-3 text-base">
-            Login
-          </Link>
+          {isAuthenticated ? (
+            <Link to="/dashboard" className="btn-primary px-6 py-3 text-base">
+              <LayoutDashboard className="h-4 w-4" /> Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link to="/register" className="btn-primary px-6 py-3 text-base">
+                Get Started Now <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link to="/login" className="btn-secondary px-6 py-3 text-base">
+                Login
+              </Link>
+            </>
+          )}
         </motion.div>
       </div>
 

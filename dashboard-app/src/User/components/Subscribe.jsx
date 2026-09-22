@@ -1,5 +1,5 @@
 import { useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { X, Wallet, CreditCard, ArrowLeft, Copy, Loader2, Check } from "lucide-react";
 import { apiUrl } from "../../config.js";
 import { useAuth } from "../context/AuthContext.jsx";

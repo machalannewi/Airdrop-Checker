@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { Zap, Loader2 } from "lucide-react";
 import { apiUrl } from "../../config.js";
+import PasswordInput from "../../components/ui/PasswordInput.jsx";
+import { getPasswordError, getPasswordStrength } from "../../lib/validation.js";
 
-const fields = [
-  { name: "fullname", label: "Full Name", type: "text" },
-  { name: "username", label: "Username", type: "text" },
-  { name: "email", label: "Email", type: "email" },
-  { name: "password", label: "Password", type: "password" },
+const textFields = [
+  { name: "fullname", label: "Full Name", type: "text", autoComplete: "name" },
+  { name: "username", label: "Username", type: "text", autoComplete: "username" },
+  { name: "email", label: "Email", type: "email", autoComplete: "email" },
 ];
 
 const Register = () => {
@@ -18,14 +19,28 @@ const Register = () => {
     email: "",
     password: "",
   });
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  const passwordError = getPasswordError(formData.password);
+  const confirmError =
+    confirmPassword && confirmPassword !== formData.password ? "Passwords don't match" : null;
+  const strength = getPasswordStrength(formData.password);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setTouched(true);
+
+    if (passwordError || confirmError) {
+      toast.error(passwordError || confirmError);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -41,7 +56,7 @@ const Register = () => {
         toast.success("Registration successful. You can now log in.");
         setTimeout(() => navigate("/login"), 1500);
       } else {
-        toast.error(data.message || "Registration failed");
+        toast.error(data.errors?.[0]?.msg || data.msg || "Registration failed");
       }
     } catch (err) {
       toast.error("Server error. Please try again.");
@@ -67,12 +82,13 @@ const Register = () => {
             Start discovering airdrops built for you.
           </p>
 
-          {fields.map((f) => (
+          {textFields.map((f) => (
             <label key={f.name} className="mt-4 block text-sm">
               {f.label}
               <input
                 type={f.type}
                 name={f.name}
+                autoComplete={f.autoComplete}
                 value={formData[f.name]}
                 onChange={handleChange}
                 required
@@ -80,6 +96,38 @@ const Register = () => {
               />
             </label>
           ))}
+
+          <label className="mt-4 block text-sm">
+            Password
+            <PasswordInput
+              name="password"
+              autoComplete="new-password"
+              className="mt-1.5"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+            {formData.password && (
+              <p className="mt-1 text-xs text-muted">Strength: {strength.label}</p>
+            )}
+            {touched && passwordError && (
+              <p className="mt-1 text-xs text-red-400">{passwordError}</p>
+            )}
+          </label>
+
+          <label className="mt-4 block text-sm">
+            Confirm Password
+            <PasswordInput
+              autoComplete="new-password"
+              className="mt-1.5"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+            {touched && confirmError && (
+              <p className="mt-1 text-xs text-red-400">{confirmError}</p>
+            )}
+          </label>
 
           <p className="mt-6 text-sm text-muted">
             Already have an account?{" "}

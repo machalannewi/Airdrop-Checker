@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
 import { Zap, Instagram, Twitter, Facebook } from "lucide-react";
+import { useAuth } from "../../User/context/AuthContext.jsx";
 
 export default function Footer() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <footer className="border-t border-white/5 bg-black py-12">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 md:flex-row md:items-start md:justify-between">
@@ -30,8 +33,14 @@ export default function Footer() {
           <div>
             <p className="font-medium text-white">Account</p>
             <ul className="mt-3 space-y-2 text-muted">
-              <li><Link to="/login" className="hover:text-white">Login</Link></li>
-              <li><Link to="/register" className="hover:text-white">Get Started</Link></li>
+              {isAuthenticated ? (
+                <li><Link to="/dashboard" className="hover:text-white">Dashboard</Link></li>
+              ) : (
+                <>
+                  <li><Link to="/login" className="hover:text-white">Login</Link></li>
+                  <li><Link to="/register" className="hover:text-white">Get Started</Link></li>
+                </>
+              )}
             </ul>
           </div>
           <div>
