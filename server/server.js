@@ -19,6 +19,7 @@ import depositRoutes from "./routes/depositRoutes.js"; // Import deposit routes
 import walletRoutes from "./routes/walletRoutes.js"; // Import wallet routes
 import withdrawalRoutes from "./routes/withdrawalRoutes.js"; // Import withdrawal routes
 import { authLimiter } from "./middleware/rateLimiter.js";
+import Transaction from "./Models/Transaction.js";
 
 const requiredEnvVars = ["MONGO_URI", "JWT_SECRET"];
 const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
@@ -58,6 +59,12 @@ const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB Connected");
+
+    // The transactionHash index used to be a plain unique index (required
+    // on every document). It's now sparse, since Paystack transactions
+    // don't have one — sync it so the live index matches the schema
+    // instead of silently keeping the old, stricter one.
+    await Transaction.syncIndexes();
   } catch (error) {
     console.error("MongoDB connection failed:", error);
     process.exit(1);

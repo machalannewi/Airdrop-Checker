@@ -7,6 +7,8 @@ import Landing from "./Public/Landing.jsx";
 import UserDashboardLayout from "./User/components/Header.jsx";
 import Login from "./User/components/Login.jsx";
 import Register from "./User/components/Register.jsx";
+import ForgotPassword from "./User/components/ForgotPassword.jsx";
+import ResetPassword from "./User/components/ResetPassword.jsx";
 import ErrorPage from "./User/components/ErrorPage.jsx";
 import ProtectedRoute from "./User/components/ProtectedRoute.jsx";
 
@@ -20,6 +22,8 @@ const router = createBrowserRouter(
         { index: true, element: <Landing /> },
         { path: "login", element: <Login /> },
         { path: "register", element: <Register /> },
+        { path: "forgot-password", element: <ForgotPassword /> },
+        { path: "reset-password", element: <ResetPassword /> },
         {
           path: "dashboard",
           element: (

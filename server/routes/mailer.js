@@ -76,3 +76,19 @@ export async function sendDepositApprovalEmail(email, amount, method, reference)
   }
 }
 
+// 5. Password reset link
+export async function sendPasswordResetEmail(email, resetLink) {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Reset your Airdox password",
+    html: `
+      <p>We received a request to reset your Airdox password.</p>
+      <p><a href="${resetLink}">Click here to choose a new password</a>. This link expires in 1 hour.</p>
+      <p>If you didn't request this, you can safely ignore this email — your password won't change.</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+

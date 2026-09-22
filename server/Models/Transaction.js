@@ -4,7 +4,17 @@ const TransactionSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     amount: { type: Number, required: true },
     currency: { type: String, default: "NGN" },
-    transactionHash: { type: String, required: true, unique: true },
+    // Only crypto deposits have an on-chain hash — Paystack transactions are
+    // identified by `reference` instead. `sparse` lets many documents omit
+    // this field without violating the unique index.
+    transactionHash: {
+        type: String,
+        unique: true,
+        sparse: true,
+        required: function () {
+            return this.paymentMethod === "Crypto";
+        },
+    },
     // method: { type: String, required: true }, // e.g., BTC, ETH
     paymentMethod: { type: String, enum: ["Paystack", "Crypto"], required: true },
     walletAddress: String, // for crypto only

@@ -1,10 +1,17 @@
 import express from "express";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { body, validationResult } from "express-validator";
 import User from "../Models/user.js";
+import { sendPasswordResetEmail } from "./mailer.js";
 
 const router = express.Router();
+
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
 // A fixed dummy hash to compare against when no user is found, so a login
 // attempt for a non-existent email takes roughly as long as one for a real
@@ -97,6 +104,91 @@ router.post(
           email: user.email,
         },
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Request a password reset link
+router.post(
+  "/forgot-password",
+  [body("email").isEmail().withMessage("Enter a valid email").isLength({ max: 254 }).trim().toLowerCase()],
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    // Always respond the same way whether or not the email is registered —
+    // otherwise this endpoint becomes another way to enumerate accounts.
+    const genericResponse = {
+      msg: "If an account exists for that email, we've sent a password reset link.",
+    };
+
+    try {
+      const { email } = req.body;
+      const user = await User.findOne({ email });
+
+      if (user) {
+        const rawToken = crypto.randomBytes(32).toString("hex");
+        user.resetPasswordTokenHash = hashToken(rawToken);
+        user.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+        await user.save();
+
+        const resetLink = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
+        sendPasswordResetEmail(email, resetLink).catch((err) =>
+          console.error("Password reset email failed:", err.message)
+        );
+      }
+
+      res.json(genericResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Complete a password reset using the emailed token
+router.post(
+  "/reset-password",
+  [
+    body("email").isEmail().withMessage("Enter a valid email").isLength({ max: 254 }).trim().toLowerCase(),
+    body("token").isString().trim().notEmpty().withMessage("Reset token is required"),
+    body("password")
+      .isLength({ min: 8, max: 128 })
+      .withMessage("Password must be at least 8 characters long")
+      .matches(/[a-zA-Z]/)
+      .withMessage("Password must include at least one letter")
+      .matches(/[0-9]/)
+      .withMessage("Password must include at least one number"),
+  ],
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const { email, token, password } = req.body;
+      const user = await User.findOne({ email }).select(
+        "+resetPasswordTokenHash +resetPasswordExpires"
+      );
+
+      const invalid =
+        !user ||
+        !user.resetPasswordTokenHash ||
+        !user.resetPasswordExpires ||
+        user.resetPasswordExpires.getTime() < Date.now() ||
+        user.resetPasswordTokenHash !== hashToken(token);
+
+      if (invalid) {
+        return res.status(400).json({ msg: "This reset link is invalid or has expired." });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+      user.resetPasswordTokenHash = null;
+      user.resetPasswordExpires = null;
+      await user.save();
+
+      res.json({ msg: "Password reset successfully. You can now log in." });
     } catch (error) {
       next(error);
     }

@@ -74,6 +74,20 @@ router.get("/verify", async (req, res) => {
       return res.redirect(`${frontendUrl}/dashboard?success=false&reason=user_not_found`);
     }
 
+    // Save the transaction record first — if it fails validation (or the
+    // reference was already used, closing a race with a concurrent request),
+    // nothing else has changed yet and we can safely report a failure. Once
+    // this succeeds, the subscription grant below is not allowed to fail for
+    // a reason that would misreport a real payment as an error.
+    await new Transaction({
+      userId: user._id,
+      amount,
+      paymentMethod: "Paystack",
+      status: "verified",
+      currency: "NGN",
+      reference,
+    }).save();
+
     const currentDate = new Date();
     let newExpiryDate;
 
@@ -89,18 +103,11 @@ router.get("/verify", async (req, res) => {
     user.subscriptionExpiry = newExpiryDate;
     await user.save();
 
-    // Record the transaction first — its unique `reference` index is what
-    // prevents this reference from ever being processed a second time.
-    await new Transaction({
-      userId: user._id,
-      amount,
-      paymentMethod: "Paystack",
-      status: "verified",
-      currency: "NGN",
-      reference,
-    }).save();
-
-    await sendDepositApprovalEmail(user.email, amount, "paystack", reference);
+    // Best-effort — a failed confirmation email must not turn an already
+    // -successful payment into an error page for the user.
+    sendDepositApprovalEmail(user.email, amount, "paystack", reference).catch((err) =>
+      console.error("Deposit approval email failed:", err.message)
+    );
 
     return res.redirect(`${frontendUrl}/dashboard?success=true`);
   } catch (error) {

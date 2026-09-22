@@ -88,15 +88,9 @@ const Login = () => {
               <input type="checkbox" className="accent-brand" />
               Remember me
             </label>
-            <button
-              type="button"
-              onClick={() =>
-                toast.info("Password reset isn't available yet — contact support for help.")
-              }
-              className="text-brand-light hover:underline"
-            >
+            <Link to="/forgot-password" className="text-brand-light hover:underline">
               Forgot password?
-            </button>
+            </Link>
           </div>
 
           <p className="mt-6 text-sm text-muted">

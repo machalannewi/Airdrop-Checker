@@ -16,6 +16,11 @@ const UserSchema = new mongoose.Schema({
   sol_balance: { type: Number, default: 0 },
   ltc_balance: { type: Number, default: 0 },
 
+  // Only ever store a hash of the reset token, never the raw value — same
+  // reasoning as storing a password hash instead of the password itself.
+  resetPasswordTokenHash: { type: String, default: null, select: false },
+  resetPasswordExpires: { type: Date, default: null, select: false },
+
 }, { timestamps: true });
 
 export default mongoose.model("User", UserSchema);
