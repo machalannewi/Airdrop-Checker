@@ -62,3 +62,23 @@ This backend went through a security review when it was merged into this repo. F
 same reference could both pass the "already processed" check before either write commits.
 Closing this fully needs a MongoDB transaction/session; flagged here rather than fixed, to
 keep the change scoped to this review.
+
+## The airdrop scraper (`GET /api/airdrops`)
+
+This route launches a real headless Chrome via Puppeteer to scrape airdrop.io — there's no
+public API for it. Two things make this fragile on hosted platforms, both addressed in
+`routes/airdropRoutes.js`:
+
+- **Chrome needs `--no-sandbox`** (and friends) to launch inside most containers — without
+  it, `puppeteer.launch()` fails outright on platforms like Render rather than falling back
+  to anything. If this route starts erroring again after a platform/Node upgrade, check the
+  server logs for a launch failure here first.
+- **Bounded, concurrent detail-page scraping.** Each airdrop's expiry date requires visiting
+  its own detail page; doing that fully sequentially for 30+ airdrops could take minutes —
+  long past most reverse proxies' request timeout, which silently looks like "it just
+  doesn't fetch anymore." It's now capped to the first `MAX_DETAIL_PAGES` airdrops, fetched
+  `DETAIL_CONCURRENCY` at a time, each with its own navigation timeout, plus a hard overall
+  timeout on the whole scrape.
+- If Chrome fails to launch even with `--no-sandbox` (e.g., the host is memory-constrained —
+  a full Chromium instance needs on the order of a few hundred MB), the route falls back to
+  the last successful scrape if one is cached, rather than returning nothing.
